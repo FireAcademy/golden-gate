@@ -22,7 +22,6 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GoldenGateClient interface {
-	IncreaseUsage(ctx context.Context, in *IncreaseUsageRequest, opts ...grpc.CallOption) (*EmptyReply, error)
 	RefreshAPIKeyData(ctx context.Context, in *RefreshAPIKeyRequest, opts ...grpc.CallOption) (*RefreshAPIKeyReply, error)
 }
 
@@ -32,15 +31,6 @@ type goldenGateClient struct {
 
 func NewGoldenGateClient(cc grpc.ClientConnInterface) GoldenGateClient {
 	return &goldenGateClient{cc}
-}
-
-func (c *goldenGateClient) IncreaseUsage(ctx context.Context, in *IncreaseUsageRequest, opts ...grpc.CallOption) (*EmptyReply, error) {
-	out := new(EmptyReply)
-	err := c.cc.Invoke(ctx, "/GoldenGate/IncreaseUsage", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *goldenGateClient) RefreshAPIKeyData(ctx context.Context, in *RefreshAPIKeyRequest, opts ...grpc.CallOption) (*RefreshAPIKeyReply, error) {
@@ -56,7 +46,6 @@ func (c *goldenGateClient) RefreshAPIKeyData(ctx context.Context, in *RefreshAPI
 // All implementations must embed UnimplementedGoldenGateServer
 // for forward compatibility
 type GoldenGateServer interface {
-	IncreaseUsage(context.Context, *IncreaseUsageRequest) (*EmptyReply, error)
 	RefreshAPIKeyData(context.Context, *RefreshAPIKeyRequest) (*RefreshAPIKeyReply, error)
 	mustEmbedUnimplementedGoldenGateServer()
 }
@@ -65,9 +54,6 @@ type GoldenGateServer interface {
 type UnimplementedGoldenGateServer struct {
 }
 
-func (UnimplementedGoldenGateServer) IncreaseUsage(context.Context, *IncreaseUsageRequest) (*EmptyReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method IncreaseUsage not implemented")
-}
 func (UnimplementedGoldenGateServer) RefreshAPIKeyData(context.Context, *RefreshAPIKeyRequest) (*RefreshAPIKeyReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshAPIKeyData not implemented")
 }
@@ -82,24 +68,6 @@ type UnsafeGoldenGateServer interface {
 
 func RegisterGoldenGateServer(s grpc.ServiceRegistrar, srv GoldenGateServer) {
 	s.RegisterService(&GoldenGate_ServiceDesc, srv)
-}
-
-func _GoldenGate_IncreaseUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IncreaseUsageRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GoldenGateServer).IncreaseUsage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/GoldenGate/IncreaseUsage",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GoldenGateServer).IncreaseUsage(ctx, req.(*IncreaseUsageRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _GoldenGate_RefreshAPIKeyData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -127,10 +95,6 @@ var GoldenGate_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "GoldenGate",
 	HandlerType: (*GoldenGateServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "IncreaseUsage",
-			Handler:    _GoldenGate_IncreaseUsage_Handler,
-		},
 		{
 			MethodName: "RefreshAPIKeyData",
 			Handler:    _GoldenGate_RefreshAPIKeyData_Handler,

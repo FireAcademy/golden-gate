@@ -1,7 +1,6 @@
 package main
 
 import (
-    "time"
     "database/sql"
 )
 
@@ -18,5 +17,5 @@ type APIKey struct {
 }
 
 type Usage struct {
-    Credits         int64     `json:"credits"`
+    Credits int64 `json:"credits"`
 }

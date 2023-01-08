@@ -6,8 +6,6 @@ service GoldenGate {
   rpc RefreshAPIKeyData (RefreshAPIKeyRequest) returns (RefreshAPIKeyReply) {}
 }
 
-message EmptyReply {}
-
 message RefreshAPIKeyRequest {
   string APIKey = 1;
 }
