@@ -3,16 +3,10 @@ syntax = "proto3";
 option go_package = "github.com/fireacademy/golden-gate/grpc";
 
 service GoldenGate {
-  rpc IncreaseUsage (IncreaseUsageRequest) returns (EmptyReply) {}
   rpc RefreshAPIKeyData (RefreshAPIKeyRequest) returns (RefreshAPIKeyReply) {}
 }
 
 message EmptyReply {}
-
-message IncreaseUsageRequest {
-  string APIKey = 1;
-  int64 Credits = 2;
-}
 
 message RefreshAPIKeyRequest {
   string APIKey = 1;
