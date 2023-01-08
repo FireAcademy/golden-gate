@@ -8,5 +8,5 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
-	pb "github.com/fireacademy/golden-gate/grpc"
+	pb "golden-gate/grpc"
 )
