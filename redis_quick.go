@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"log"
 	"context"
 	"github.com/go-redis/redis/v8"
@@ -9,6 +10,7 @@ import (
 const PROCESS_QUEUE_SET_NAME = "api-keys-to-update"
 const USAGE_PREFIX = "usage-"
 const ORIGIN_PREFIX = "origin-"
+const API_KEY_OK_VALUE = "ok"
 
 var RDB *redis.Client
 
@@ -29,7 +31,7 @@ func BillCreditsQuickly(apiKey string, credits int64) error {
 }
 
 func checkAPIKeyQuickly(apiKey string) (bool /* ok */, string /* origin */, error /* errored */) {
-	ok, err := rdb.Get(context.Background(), apiKey).Result()
+	ok, err := RDB.Get(context.Background(), apiKey).Result()
 	if err != nil {
 		if err != redis.Nil {
 			log.Print(err)
@@ -37,7 +39,7 @@ func checkAPIKeyQuickly(apiKey string) (bool /* ok */, string /* origin */, erro
 		return false, "", err
 	}
 
-	origin, err := rdb.Get(context.Background(), ORIGIN_PREFIX + apiKey).Result()
+	origin, err := RDB.Get(context.Background(), ORIGIN_PREFIX + apiKey).Result()
 	if err != nil {
 		if err != redis.Nil {
 			log.Print(err)
@@ -45,7 +47,7 @@ func checkAPIKeyQuickly(apiKey string) (bool /* ok */, string /* origin */, erro
 		return false, "", err
 	}
 
-	return ok, origin, nil
+	return ok == API_KEY_OK_VALUE, origin, nil
 }
 
 func getRedisConnectionString() string {
@@ -58,12 +60,10 @@ func getRedisConnectionString() string {
 }
 
 func SetupRedis() {
-	ctx := context.Background()
-
 	opt, err := redis.ParseURL(getRedisConnectionString())
 	if err != nil {
 		panic(err)
 	}
 
-	rdb = redis.NewClient(opt)
+	RDB = redis.NewClient(opt)
 }

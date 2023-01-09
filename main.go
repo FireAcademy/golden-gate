@@ -14,15 +14,15 @@ type server struct {
 	pb.UnimplementedGoldenGateServer
 }
 
-func (s *server) RefreshAPIKeyData(context.Context, r *pb.RefreshAPIKeyRequest) (*pb.RefreshAPIKeyReply, error) {
+func (s *server) RefreshAPIKeyData(ctx context.Context, r *pb.RefreshAPIKeyRequest) (*pb.RefreshAPIKeyReply, error) {
 	canBeUsed, err := RefreshAPIKey(r.APIKey)
-	
+
 	return &pb.RefreshAPIKeyReply{
 		CanBeUsed: canBeUsed,
 	}, err
 }
 
-func (s *server) BillCredits(context.Context, r *pb.BillCreditsRequest) (*pb.EmptyReply, error) {
+func (s *server) BillCredits(ctx context.Context, r *pb.BillCreditsRequest) (*pb.EmptyReply, error) {
 	err := BillCreditsQuickly(r.APIKey, r.Credits)
 	return &pb.EmptyReply{}, err
 }
