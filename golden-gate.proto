@@ -4,7 +4,10 @@ option go_package = "github.com/fireacademy/golden-gate/grpc";
 
 service GoldenGate {
   rpc RefreshAPIKeyData (RefreshAPIKeyRequest) returns (RefreshAPIKeyReply) {}
+  rpc BillCredits (BillCreditsRequest) returns (EmptyReply) {}
 }
+
+message EmptyReply {}
 
 message RefreshAPIKeyRequest {
   string APIKey = 1;
@@ -12,4 +15,9 @@ message RefreshAPIKeyRequest {
 
 message RefreshAPIKeyReply {
   bool CanBeUsed = 1;
+}
+
+message BillCreditsRequest {
+  string APIKey = 1;
+  int64 credits = 2;
 }
