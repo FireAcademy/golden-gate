@@ -40,10 +40,10 @@ func checkAPIKeyQuickly(apiKey string) (bool /* ok */, string /* origin */, erro
 	}
 
 	origin, err := RDB.Get(context.Background(), ORIGIN_PREFIX + apiKey).Result()
-	if err != nil {
-		if err != redis.Nil {
-			log.Print(err)
-		}
+	if err == redis.Nil {
+		origin = "*"
+	} else if err != nil {
+		log.Print(err)
 		return false, "", err
 	}
 

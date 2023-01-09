@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"strconv"
 	"net/http"
 	"encoding/json"
 )
@@ -68,12 +69,68 @@ func GetInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
 	return resp, nil
 }
 
+func IsAPIKeyOK(apiKey String, info DataDudeResponse, creditsToProcess int64) (int64 /* creditsToBill */, bool /* ok */, string /* newOrigin */, error /* err */) {
+	origin := info.APIKey.Origin
+	creditsToBill := creditsToProcess
+
+	if info.APIKey.MonthlyCreditLimit < info.Usage.Credits + creditsToBill {
+		log.Print("Missed a few credits on API key " + apiKey)
+		creditsToBill = info.APIKey.MonthlyCreditLimit - info.Usage.Credits
+	}
+
+	// todo
+}
+
 func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
-	keyInfo, err := GetInfoFromDataDude(apiKey)
+	info, err := GetInfoFromDataDude(apiKey)
 	if err != nil {
 		return false, err
 	}
 
-	// do things...
-	return true, nil
+	creditsToProcessStr, err := RDB.Get(context.Background(), apiKey).Result()
+	if err != nil {
+		if err != redis.Nil {
+			log.Print(err)
+		}
+		creditsToProcessStr = "0"
+	}
+	creditsToProcess, err := strconv.ParseInt(creditsToProcessStr, 10, 64)
+	if err != nil {
+		log.Print(err)
+		creditsToProcess = 0
+	}
+
+	creditsToBill, ok, newOrigin, err := IsAPIKeyOK(apiKey, info, creditsToProcess)
+
+	if creditsToBill > 0 {
+		err := BillCredits(apiKey, creditsToBill)
+		if err != nil {
+			log.Print("Could not bill credits for " + apiKey)
+			log.Print(err)
+		}
+	}
+
+	// update redis
+	valueToSet := "not-ok"
+	if ok {
+		valueToSet := API_KEY_OK_VALUE
+	}
+	err := RDB.Set(context.Background(), apiKey, valueToSet).Error()
+	if err != nil {
+		log.Print(err)
+		return true, err
+	}
+	err := RDB.Set(context.Background(), ORIGIN_PREFIX + apiKey, newOrigin).Error()
+	if err != nil {
+		log.Print(err)
+		return ok, err
+	}
+	err := RDB.DecrBy(context.Background(), USAGE_PREFIX + apiKey, creditsToProcess).Error()
+	if err != nil {
+		log.Print(err)
+		return ok, err
+	}
+	RDB.SRem(context.Background(), PROCESS_QUEUE_SET_NAME, apiKey)
+
+	return ok, nil
 }
