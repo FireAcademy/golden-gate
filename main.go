@@ -50,6 +50,9 @@ func getPort() string {
 }
 
 func main() {
+	SetupRedis()
+	SetupCheck()
+
 	port := getPort()
 	gRPCServer(port)
 }
