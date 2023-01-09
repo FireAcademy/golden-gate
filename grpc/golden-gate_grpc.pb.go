@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GoldenGateClient interface {
 	RefreshAPIKeyData(ctx context.Context, in *RefreshAPIKeyRequest, opts ...grpc.CallOption) (*RefreshAPIKeyReply, error)
+	BillCredits(ctx context.Context, in *BillCreditsRequest, opts ...grpc.CallOption) (*EmptyReply, error)
 }
 
 type goldenGateClient struct {
@@ -42,11 +43,21 @@ func (c *goldenGateClient) RefreshAPIKeyData(ctx context.Context, in *RefreshAPI
 	return out, nil
 }
 
+func (c *goldenGateClient) BillCredits(ctx context.Context, in *BillCreditsRequest, opts ...grpc.CallOption) (*EmptyReply, error) {
+	out := new(EmptyReply)
+	err := c.cc.Invoke(ctx, "/GoldenGate/BillCredits", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GoldenGateServer is the server API for GoldenGate service.
 // All implementations must embed UnimplementedGoldenGateServer
 // for forward compatibility
 type GoldenGateServer interface {
 	RefreshAPIKeyData(context.Context, *RefreshAPIKeyRequest) (*RefreshAPIKeyReply, error)
+	BillCredits(context.Context, *BillCreditsRequest) (*EmptyReply, error)
 	mustEmbedUnimplementedGoldenGateServer()
 }
 
@@ -56,6 +67,9 @@ type UnimplementedGoldenGateServer struct {
 
 func (UnimplementedGoldenGateServer) RefreshAPIKeyData(context.Context, *RefreshAPIKeyRequest) (*RefreshAPIKeyReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshAPIKeyData not implemented")
+}
+func (UnimplementedGoldenGateServer) BillCredits(context.Context, *BillCreditsRequest) (*EmptyReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BillCredits not implemented")
 }
 func (UnimplementedGoldenGateServer) mustEmbedUnimplementedGoldenGateServer() {}
 
@@ -88,6 +102,24 @@ func _GoldenGate_RefreshAPIKeyData_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GoldenGate_BillCredits_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BillCreditsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoldenGateServer).BillCredits(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/GoldenGate/BillCredits",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoldenGateServer).BillCredits(ctx, req.(*BillCreditsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GoldenGate_ServiceDesc is the grpc.ServiceDesc for GoldenGate service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -98,6 +130,10 @@ var GoldenGate_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshAPIKeyData",
 			Handler:    _GoldenGate_RefreshAPIKeyData_Handler,
+		},
+		{
+			MethodName: "BillCredits",
+			Handler:    _GoldenGate_BillCredits_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
