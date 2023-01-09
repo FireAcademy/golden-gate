@@ -6,15 +6,7 @@ import (
 )
 
 var DataDudeAPIKeyInfoURL string
-
-func getDataDudeUrl() string {
-   url := os.Getenv("DATA_DUDE_API_KEY_INFO_URL")
-   if url == "" {
-       panic("DATA_DUDE_API_KEY_INFO_URL not set.")
-   }
-
-   return url
-}
+var ManagementToken string
 
 func loop() {
 	time.Sleep(5 * time.Second)
@@ -41,7 +33,26 @@ func loop() {
 	}
 }
 
+func getDataDudeUrl() string {
+   url := os.Getenv("DATA_DUDE_API_KEY_INFO_URL")
+   if url == "" {
+       panic("DATA_DUDE_API_KEY_INFO_URL not set.")
+   }
+
+   return url
+}
+
+func getManagementToken() string {
+   token := os.Getenv("DATA_DUDE_MANAGEMENT_TOKEN")
+   if token == "" {
+       panic("DATA_DUDE_MANAGEMENT_TOKEN not set.")
+   }
+
+   return token
+}
+
 func SetupCheck() {
 	DataDudeAPIKeyInfoURL = getDataDudeUrl()
+	ManagementToken = getManagementToken()
 	go loop()
 }
