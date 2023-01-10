@@ -69,7 +69,7 @@ func GetInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
 	return resp, nil
 }
 
-func IsAPIKeyOK(apiKey String, info DataDudeResponse, creditsToProcess int64) (int64 /* creditsToBill */, bool /* ok */, string /* newOrigin */, error /* err */) {
+func IsAPIKeyOK(apiKey String, info DataDudeResponse, creditsToProcess int64) (int64 /* creditsToBill */, bool /* ok */, string /* newOrigin */, bool /* purchaseCreditsPackage */) {
 	origin := info.APIKey.Origin
 	creditsToBill := creditsToProcess
 
@@ -78,7 +78,19 @@ func IsAPIKeyOK(apiKey String, info DataDudeResponse, creditsToProcess int64) (i
 		creditsToBill = info.APIKey.MonthlyCreditLimit - info.Usage.Credits
 	}
 
-	// todo
+	if creditsToBill == 0 || info.APIKey.Disabled {
+		return 0, false, origin, false
+	}
+
+	if creditsToBill > info.User.RemainingCredits {
+		if info.User.StripeCustomerID.Valid && info.user.AutoPurchaseCreditsPackages {
+			return creditsToBill, true, origin, true
+		} else {
+			return 0, false, origin, false
+		}
+	}
+
+	return creditsToBill, true, origin, false
 }
 
 func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
@@ -100,7 +112,11 @@ func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
 		creditsToProcess = 0
 	}
 
-	creditsToBill, ok, newOrigin, err := IsAPIKeyOK(apiKey, info, creditsToProcess)
+	creditsToBill, ok, newOrigin, purchaseCreditsPackage := IsAPIKeyOK(apiKey, info, creditsToProcess)
+
+	if purchaseCreditsPackage {
+		todo
+	}
 
 	if creditsToBill > 0 {
 		err := BillCredits(apiKey, creditsToBill)
@@ -120,15 +136,29 @@ func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
 		log.Print(err)
 		return true, err
 	}
-	err := RDB.Set(context.Background(), ORIGIN_PREFIX + apiKey, newOrigin).Error()
-	if err != nil {
-		log.Print(err)
-		return ok, err
-	}
-	err := RDB.DecrBy(context.Background(), USAGE_PREFIX + apiKey, creditsToProcess).Error()
-	if err != nil {
-		log.Print(err)
-		return ok, err
+
+	if ok {
+		err := RDB.Set(context.Background(), ORIGIN_PREFIX + apiKey, newOrigin).Error()
+		if err != nil {
+			log.Print(err)
+			return true, err
+		}
+		err := RDB.DecrBy(context.Background(), USAGE_PREFIX + apiKey, creditsToProcess).Error()
+		if err != nil {
+			log.Print(err)
+			return true, err
+		}
+	} else {
+		err := RDB.Del(context.Background(), ORIGIN_PREFIX + apiKey).Error()
+		if err != nil && err != redis.Nil {
+			log.Print(err)
+			return false, err
+		}
+		err := RDB.Del(context.Background(), USAGE_PREFIX + apiKey, creditsToProcess).Error()
+		if err != nil && err != redis.Nil {
+			log.Print(err)
+			return false, err
+		}
 	}
 	RDB.SRem(context.Background(), PROCESS_QUEUE_SET_NAME, apiKey)
 
