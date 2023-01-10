@@ -254,10 +254,10 @@ func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
 	}
 
 	if creditsToBill > 0 {
-		syccess, err := TellDataDudeToRecordUsage(apiKey, creditsToBill)
+		success, err := TellDataDudeToRecordUsage(apiKey, creditsToBill)
 		if err != nil || !success {
 			log.Print("Could not bill credits for " + apiKey)
-			if err != nul {
+			if err != nil {
 				log.Print(err)
 			}
 		}
@@ -266,32 +266,32 @@ func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
 	// update redis
 	valueToSet := "not-ok"
 	if ok {
-		valueToSet := API_KEY_OK_VALUE
+		valueToSet = API_KEY_OK_VALUE
 	}
-	err := RDB.Set(context.Background(), apiKey, valueToSet).Error()
+	err = RDB.Set(context.Background(), apiKey, valueToSet, 0).Err()
 	if err != nil {
 		log.Print(err)
 		return true, err
 	}
 
 	if ok {
-		err := RDB.Set(context.Background(), ORIGIN_PREFIX + apiKey, newOrigin).Error()
+		err = RDB.Set(context.Background(), ORIGIN_PREFIX + apiKey, newOrigin, 0).Err()
 		if err != nil {
 			log.Print(err)
 			return true, err
 		}
-		err := RDB.DecrBy(context.Background(), USAGE_PREFIX + apiKey, creditsToProcess).Error()
+		err = RDB.DecrBy(context.Background(), USAGE_PREFIX + apiKey, creditsToProcess).Err()
 		if err != nil {
 			log.Print(err)
 			return true, err
 		}
 	} else {
-		err := RDB.Del(context.Background(), ORIGIN_PREFIX + apiKey).Error()
+		err = RDB.Del(context.Background(), ORIGIN_PREFIX + apiKey).Err()
 		if err != nil && err != redis.Nil {
 			log.Print(err)
 			return false, err
 		}
-		err := RDB.Del(context.Background(), USAGE_PREFIX + apiKey, creditsToProcess).Error()
+		err = RDB.Del(context.Background(), USAGE_PREFIX + apiKey).Err()
 		if err != nil && err != redis.Nil {
 			log.Print(err)
 			return false, err
