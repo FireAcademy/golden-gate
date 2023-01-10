@@ -2,11 +2,15 @@ package main
 
 import (
 	"os"
+	"log"
+	"time"
+	"context"
 	"github.com/go-redis/redis/v8"
 )
 
 var DataDudeAPIKeyInfoURL string
 var DataDudeBillCreditsPackageURL string
+var DataDudeRecordUsageURL string
 var ManagementToken string
 
 func loop() {
@@ -23,7 +27,7 @@ func loop() {
 			}
 		}
 
-		_, err := RefreshAPIKey(apiKey)
+		_, err = RefreshAPIKey(apiKey)
 		if err != nil {
 			log.Print(err)
 			err = RDB.SAdd(context.Background(), PROCESS_QUEUE_SET_NAME, apiKey).Err()
@@ -52,6 +56,15 @@ func getDataDudeBillCreditsPackageURL() string {
    return url
 }
 
+func getDataDudeRecordUsageURL() string {
+   url := os.Getenv("DATA_DUDE_RECORD_USAGE_URL")
+   if url == "" {
+       panic("DATA_DUDE_RECORD_USAGE_URL not set.")
+   }
+
+   return url
+}
+
 func getManagementToken() string {
    token := os.Getenv("DATA_DUDE_MANAGEMENT_TOKEN")
    if token == "" {
@@ -64,6 +77,7 @@ func getManagementToken() string {
 func SetupCheck() {
 	DataDudeAPIKeyInfoURL = getDataDudeApiKeyInfoURL()
 	DataDudeBillCreditsPackageURL = getDataDudeBillCreditsPackageURL()
+	DataDudeRecordUsageURL = getDataDudeRecordUsageURL()
 	ManagementToken = getManagementToken()
 	go loop()
 }

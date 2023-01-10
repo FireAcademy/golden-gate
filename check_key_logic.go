@@ -1,11 +1,16 @@
 package main
 
 import (
+	"log"
+	"time"
 	"bytes"
 	"errors"
+	"context"
 	"strconv"
 	"net/http"
+	"io/ioutil"
 	"encoding/json"
+	"github.com/go-redis/redis/v8"
 )
 
 type GetAPIKeyInfoArgs struct {
@@ -20,7 +25,7 @@ func GetAPIKeyInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
 		APIKey: apiKey,
 	}
 
-	args_JSON, err = json.Marshal(args)
+	args_JSON, err := json.Marshal(args)
 	if err != nil {
 		log.Print(err)
 		return errObj, err
@@ -60,7 +65,7 @@ func GetAPIKeyInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
 	}
 
 	var resp DataDudeResponse
-	err := json.Unmarshal(resBody, &resp)
+	err = json.Unmarshal(resBody, &resp)
 	if err != nil {
 		log.Print(err)
 		return errObj, err
@@ -74,7 +79,7 @@ type BillCreditsPackageArgs struct {
 }
 
 type BillCreditsPackageResponse struct {
-    Success string `json:"success"`
+    Success bool `json:"success"`
 }
 
 func TellDataDudeToBillCreditsPackage(custId string) (bool /* success */, error) {
@@ -82,7 +87,7 @@ func TellDataDudeToBillCreditsPackage(custId string) (bool /* success */, error)
 		StripeCustomerID: custId,
 	}
 
-	args_JSON, err = json.Marshal(args)
+	args_JSON, err := json.Marshal(args)
 	if err != nil {
 		log.Print(err)
 		return false, err
@@ -116,20 +121,83 @@ func TellDataDudeToBillCreditsPackage(custId string) (bool /* success */, error)
 	if res.StatusCode != 200 {
 		log.Print("data-dude error")
 		log.Print(resBody)
-		return errObj, errors.New("")
+		return false, errors.New("")
 	}
 
 	var resp BillCreditsPackageResponse
-	err := json.Unmarshal(resBody, &resp)
+	err = json.Unmarshal(resBody, &resp)
 	if err != nil {
 		log.Print(err)
-		return errObj, err
+		return false, err
 	}
 
 	return resp.Success, nil
 }
 
-func IsAPIKeyOK(apiKey String, info DataDudeResponse, creditsToProcess int64) (int64 /* creditsToBill */, bool /* ok */, string /* newOrigin */, bool /* purchaseCreditsPackage */) {
+/* formerly RecordUsageWithoutAnyChecksWhatsoeverArgs */
+type RecordUsageArgs struct {
+    APIKey string `json:"api_key"`
+    Credits int64 `json:"credits"`
+}
+
+type RecordUsageResponse struct {
+    Success bool `json:"success"`
+}
+
+func TellDataDudeToRecordUsage(apiKey string, credits int64) (bool /* success */, error) {
+	args := RecordUsageArgs{
+		APIKey: apiKey,
+		Credits: credits,
+	}
+
+	args_JSON, err := json.Marshal(args)
+	if err != nil {
+		log.Print(err)
+		return false, err
+	}
+
+	bodyReader := bytes.NewReader(args_JSON)
+
+	req, err := http.NewRequest(http.MethodPost, DataDudeRecordUsageURL, bodyReader)
+	if err != nil {
+		log.Print(err)
+		return false, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Management-Token", "ManagementToken") // f4ee5c1eb39d14517e90b9cejustkidding
+
+	client := http.Client{
+		Timeout: 30 * time.Second,
+  	}
+
+  	res, err := client.Do(req)
+  	if err != nil {
+		log.Print(err)
+		return false, err
+	}
+
+	resBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Print(err)
+		return false, err
+	}
+	if res.StatusCode != 200 {
+		log.Print("data-dude error")
+		log.Print(resBody)
+		return false, errors.New("")
+	}
+
+	var resp RecordUsageResponse
+	err = json.Unmarshal(resBody, &resp)
+	if err != nil {
+		log.Print(err)
+		return false, err
+	}
+
+	return resp.Success, nil
+}
+
+func IsAPIKeyOK(apiKey string, info DataDudeResponse, creditsToProcess int64) (int64 /* creditsToBill */, bool /* ok */, string /* newOrigin */, bool /* purchaseCreditsPackage */) {
 	origin := info.APIKey.Origin
 	creditsToBill := creditsToProcess
 
@@ -143,7 +211,7 @@ func IsAPIKeyOK(apiKey String, info DataDudeResponse, creditsToProcess int64) (i
 	}
 
 	if creditsToBill > info.User.RemainingCredits {
-		if info.User.StripeCustomerID.Valid && info.user.AutoPurchaseCreditsPackages {
+		if info.User.StripeCustomerID.Valid && info.User.AutoPurchaseCreditsPackages {
 			return creditsToBill, true, origin, true
 		} else {
 			return 0, false, origin, false
@@ -186,10 +254,12 @@ func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
 	}
 
 	if creditsToBill > 0 {
-		err := BillCredits(apiKey, creditsToBill)
-		if err != nil {
+		syccess, err := TellDataDudeToRecordUsage(apiKey, creditsToBill)
+		if err != nil || !success {
 			log.Print("Could not bill credits for " + apiKey)
-			log.Print(err)
+			if err != nul {
+				log.Print(err)
+			}
 		}
 	}
 
