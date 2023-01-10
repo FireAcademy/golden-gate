@@ -12,7 +12,7 @@ type GetAPIKeyInfoArgs struct {
     APIKey string `json:"api_key"`
 }
 
-func GetInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
+func GetAPIKeyInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
 	errObj := DataDudeResponse{
 		Success: false,
 	}
@@ -69,6 +69,66 @@ func GetInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
 	return resp, nil
 }
 
+type BillCreditsPackageArgs struct {
+    StripeCustomerID string `json:"stripe_customer_id"`
+}
+
+type BillCreditsPackageResponse struct {
+    Success string `json:"success"`
+}
+
+func TellDataDudeToBillCreditsPackage(custId string) (bool /* success */, error) {
+	args := BillCreditsPackageArgs{
+		StripeCustomerID: custId,
+	}
+
+	args_JSON, err = json.Marshal(args)
+	if err != nil {
+		log.Print(err)
+		return false, err
+	}
+
+	bodyReader := bytes.NewReader(args_JSON)
+
+	req, err := http.NewRequest(http.MethodPost, DataDudeBillCreditsPackageURL, bodyReader)
+	if err != nil {
+		log.Print(err)
+		return false, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Management-Token", "ManagementToken") // f4ee5c1eb39d14517e90b9cejustkidding
+
+	client := http.Client{
+		Timeout: 30 * time.Second,
+  	}
+
+  	res, err := client.Do(req)
+  	if err != nil {
+		log.Print(err)
+		return false, err
+	}
+
+	resBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Print(err)
+		return false, err
+	}
+	if res.StatusCode != 200 {
+		log.Print("data-dude error")
+		log.Print(resBody)
+		return errObj, errors.New("")
+	}
+
+	var resp BillCreditsPackageResponse
+	err := json.Unmarshal(resBody, &resp)
+	if err != nil {
+		log.Print(err)
+		return errObj, err
+	}
+
+	return resp.Success, nil
+}
+
 func IsAPIKeyOK(apiKey String, info DataDudeResponse, creditsToProcess int64) (int64 /* creditsToBill */, bool /* ok */, string /* newOrigin */, bool /* purchaseCreditsPackage */) {
 	origin := info.APIKey.Origin
 	creditsToBill := creditsToProcess
@@ -94,7 +154,7 @@ func IsAPIKeyOK(apiKey String, info DataDudeResponse, creditsToProcess int64) (i
 }
 
 func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
-	info, err := GetInfoFromDataDude(apiKey)
+	info, err := GetAPIKeyInfoFromDataDude(apiKey)
 	if err != nil {
 		return false, err
 	}
@@ -115,7 +175,14 @@ func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
 	creditsToBill, ok, newOrigin, purchaseCreditsPackage := IsAPIKeyOK(apiKey, info, creditsToProcess)
 
 	if purchaseCreditsPackage {
-		todo
+		success, err := TellDataDudeToBillCreditsPackage(info.User.StripeCustomerID.String)
+
+		if err != nil || !success {
+			if err != nil {
+				log.Print(err)
+			}
+			log.Print("Could not bill extra package for " + info.User.StripeCustomerID.String)
+		}
 	}
 
 	if creditsToBill > 0 {

@@ -6,6 +6,7 @@ import (
 )
 
 var DataDudeAPIKeyInfoURL string
+var DataDudeBillCreditsPackageURL string
 var ManagementToken string
 
 func loop() {
@@ -33,10 +34,19 @@ func loop() {
 	}
 }
 
-func getDataDudeUrl() string {
+func getDataDudeApiKeyInfoURL() string {
    url := os.Getenv("DATA_DUDE_API_KEY_INFO_URL")
    if url == "" {
        panic("DATA_DUDE_API_KEY_INFO_URL not set.")
+   }
+
+   return url
+}
+
+func getDataDudeBillCreditsPackageURL() string {
+   url := os.Getenv("DATA_DUDE_BILL_CREDITS_PACKAGE_URL")
+   if url == "" {
+       panic("DATA_DUDE_BILL_CREDITS_PACKAGE_URL not set.")
    }
 
    return url
@@ -52,7 +62,8 @@ func getManagementToken() string {
 }
 
 func SetupCheck() {
-	DataDudeAPIKeyInfoURL = getDataDudeUrl()
+	DataDudeAPIKeyInfoURL = getDataDudeApiKeyInfoURL()
+	DataDudeBillCreditsPackageURL = getDataDudeBillCreditsPackageURL()
 	ManagementToken = getManagementToken()
 	go loop()
 }
