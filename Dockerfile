@@ -17,4 +17,4 @@ FROM scratch
 
 COPY --from=builder /golden-gate /golden-gate 
 
-ENTRYPOINT ["/golden-gate "]
+ENTRYPOINT ["/golden-gate"]
