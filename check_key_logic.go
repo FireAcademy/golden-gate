@@ -36,7 +36,7 @@ func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
 	state, err := RDB.Get(context.Background(), apiKey).Result()
 	if err == nil && state == API_KEY_PENDING_CHECK_VALUE {
 		ok, _, err := CheckAPIKeyQuickly(apiKey)
-		return ok, er
+		return ok, err
 	}
 
 	err = RDB.Set(context.Background(), apiKey, API_KEY_PENDING_CHECK_VALUE, 2 * time.Second).Err()

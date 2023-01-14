@@ -32,11 +32,18 @@ func BillCreditsQuickly(apiKey string, credits int64) error {
 	return nil
 }
 
-func CheckAPIKeyQuickly(apiKey string) (bool /* ok */, string /* origin */, error /* errored */) {
-	ok := API_KEY_PENDING_CHECK_VALUE
+func CheckAPIKeyQuickly(apiKey string) (bool /* ok */, string /* origin */, error /* error */) {
+	ok, err := RDB.Get(context.Background(), apiKey).Result()
+	if err != nil {
+		if err != redis.Nil {
+			log.Print(err)
+		}
+		return false, "", err
+	}
+	
 	for ok == API_KEY_PENDING_CHECK_VALUE {
 		time.Sleep(100 * time.Millisecond)
-		ok, err := RDB.Get(context.Background(), apiKey).Result()
+		ok, err = RDB.Get(context.Background(), apiKey).Result()
 		if err != nil {
 			if err != redis.Nil {
 				log.Print(err)
