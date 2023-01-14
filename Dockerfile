@@ -15,6 +15,7 @@ RUN go build -v -ldflags="-w -s" -o /golden-gate .
 
 FROM scratch
 
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /golden-gate /golden-gate 
 
 ENTRYPOINT ["/golden-gate"]

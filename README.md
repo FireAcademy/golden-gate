@@ -1,5 +1,5 @@
 # golden-gate
 
 ```
-ghcr.io/fireacademy/golden-gate:1.0.1
+ghcr.io/fireacademy/golden-gate:1.0.2
 ```
