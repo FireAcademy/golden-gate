@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 	"context"
 	"strconv"
 	"github.com/go-redis/redis/v8"
@@ -32,12 +33,24 @@ func IsAPIKeyOK(apiKey string, info DataDudeResponse, creditsToProcess int64) (i
 }
 
 func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
+	state, err := RDB.Get(context.Background(), apiKey).Result()
+	if err == nil && state == API_KEY_PENDING_CHECK_VALUE {
+		ok, _, err := CheckAPIKeyQuickly(apiKey)
+		return ok, er
+	}
+
+	err = RDB.Set(context.Background(), apiKey, API_KEY_PENDING_CHECK_VALUE, 2 * time.Second).Err()
+	if err != nil {
+		log.Print(err)
+		return true, err
+	}
+
 	info, err := GetAPIKeyInfoFromDataDude(apiKey)
 	if err != nil {
 		return false, err
 	}
 
-	creditsToProcessStr, err := RDB.Get(context.Background(), apiKey).Result()
+	creditsToProcessStr, err := RDB.Get(context.Background(), USAGE_PREFIX + apiKey).Result()
 	if err != nil {
 		if err != redis.Nil {
 			log.Print(err)
