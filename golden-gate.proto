@@ -15,6 +15,7 @@ message RefreshAPIKeyRequest {
 
 message RefreshAPIKeyReply {
   bool CanBeUsed = 1;
+  string Origin = 2;
 }
 
 message BillCreditsRequest {

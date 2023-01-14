@@ -28,7 +28,7 @@ func loop() {
 			}
 		}
 
-		_, err = RefreshAPIKey(apiKey)
+		_, _, err = RefreshAPIKey(apiKey)
 		if err != nil {
 			log.Print(err)
 			err = RDB.SAdd(context.Background(), PROCESS_QUEUE_SET_NAME, apiKey).Err()

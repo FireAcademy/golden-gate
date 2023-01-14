@@ -16,10 +16,11 @@ type server struct {
 }
 
 func (s *server) RefreshAPIKeyData(ctx context.Context, r *pb.RefreshAPIKeyRequest) (*pb.RefreshAPIKeyReply, error) {
-	canBeUsed, err := RefreshAPIKey(r.APIKey)
+	canBeUsed, origin, err := RefreshAPIKey(r.APIKey)
 
 	return &pb.RefreshAPIKeyReply{
 		CanBeUsed: canBeUsed,
+		Origin: origin,
 	}, err
 }
 

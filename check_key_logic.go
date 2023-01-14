@@ -33,22 +33,21 @@ func IsAPIKeyOK(apiKey string, info DataDudeResponse, creditsToProcess int64) (i
 	return creditsToBill, true, origin, false
 }
 
-func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
+func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, string /* origin */, error /* err */) {
 	state, err := RDB.Get(context.Background(), apiKey).Result()
 	if err == nil && state == API_KEY_PENDING_CHECK_VALUE {
-		ok, _, err := CheckAPIKeyQuickly(apiKey)
-		return ok, err
+		return CheckAPIKeyQuickly(apiKey)
 	}
 
 	err = RDB.Set(context.Background(), apiKey, API_KEY_PENDING_CHECK_VALUE, 2 * time.Second).Err()
 	if err != nil {
 		log.Print(err)
-		return true, err
+		return false, "", err
 	}
 
 	info, err := GetAPIKeyInfoFromDataDude(apiKey)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
 	creditsToProcessStr, err := RDB.Get(context.Background(), USAGE_PREFIX + apiKey).Result()
@@ -95,33 +94,33 @@ func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, error /* err */) {
 	err = RDB.Set(context.Background(), apiKey, valueToSet, 0).Err()
 	if err != nil {
 		log.Print(err)
-		return true, err
+		return true, newOrigin, err
 	}
 
 	if ok {
 		err = RDB.Set(context.Background(), ORIGIN_PREFIX + apiKey, newOrigin, 0).Err()
 		if err != nil {
 			log.Print(err)
-			return true, err
+			return true, newOrigin, err
 		}
 		err = RDB.DecrBy(context.Background(), USAGE_PREFIX + apiKey, creditsToProcess).Err()
 		if err != nil {
 			log.Print(err)
-			return true, err
+			return true, newOrigin, err
 		}
 	} else {
 		err = RDB.Del(context.Background(), ORIGIN_PREFIX + apiKey).Err()
 		if err != nil && err != redis.Nil {
 			log.Print(err)
-			return false, err
+			return false, newOrigin, err
 		}
 		err = RDB.Del(context.Background(), USAGE_PREFIX + apiKey).Err()
 		if err != nil && err != redis.Nil {
 			log.Print(err)
-			return false, err
+			return false, newOrigin, err
 		}
 	}
 	RDB.SRem(context.Background(), PROCESS_QUEUE_SET_NAME, apiKey)
 
-	return ok, nil
+	return ok, newOrigin, nil
 }
