@@ -6,6 +6,7 @@ import (
 	"context"
 	"strconv"
 	"github.com/go-redis/redis/v8"
+	. "github.com/fireacademy/golden-gate/redis"
 )
 
 func IsAPIKeyOK(apiKey string, info DataDudeResponse, creditsToProcess int64) (int64 /* creditsToBill */, bool /* ok */, string /* newOrigin */, bool /* purchaseCreditsPackage */) {

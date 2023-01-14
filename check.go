@@ -6,6 +6,7 @@ import (
 	"time"
 	"context"
 	"github.com/go-redis/redis/v8"
+	. "github.com/fireacademy/golden-gate/redis"
 )
 
 var DataDudeAPIKeyInfoURL string

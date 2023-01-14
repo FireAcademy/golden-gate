@@ -1,4 +1,4 @@
-module golden-gate
+module github.com/fireacademy/golden-gate
 
 go 1.18
 

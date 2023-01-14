@@ -6,8 +6,9 @@ import (
 	"log"
 	"net"
 	"context"
-	pb "golden-gate/grpc"
 	"google.golang.org/grpc"
+	pb "github.com/fireacademy/golden-gate/grpc"
+	. "github.com/fireacademy/golden-gate/redis"
 )
 
 type server struct {
