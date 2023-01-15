@@ -23,6 +23,6 @@ type UsageInfo struct {
 type DataDudeResponse struct {
     Success    bool       `json:"success"`
     APIKey     APIKeyInfo `json:"api_key"`
-    User       UserInfo   `json:"api_key"`
-    Usage      UsageInfo  `json:"api_key"`
+    User       UserInfo   `json:"user"`
+    Usage      UsageInfo  `json:"usage"`
 }
