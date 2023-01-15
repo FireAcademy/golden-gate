@@ -36,7 +36,7 @@ func GetAPIKeyInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
 		return errObj, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Management-Token", "ManagementToken") // f4ee5c1eb39d14517e90b9cejustkidding
+	req.Header.Set("X-Management-Token", ManagementToken) // f4ee5c1eb39d14517e90b9cejustkidding
 
 	client := http.Client{
 		Timeout: 30 * time.Second,
@@ -57,7 +57,7 @@ func GetAPIKeyInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
 	}
 	if res.StatusCode != 200 {
 		log.Print("data-dude error")
-		log.Print(resBody)
+		log.Print(str(resBody))
 		return errObj, errors.New("")
 	}
 
@@ -98,7 +98,7 @@ func TellDataDudeToBillCreditsPackage(custId string) (bool /* success */, error)
 		return false, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Management-Token", "ManagementToken") // f4ee5c1eb39d14517e90b9cejustkidding
+	req.Header.Set("X-Management-Token", ManagementToken) // f4ee5c1eb39d14517e90b9cejustkidding
 
 	client := http.Client{
 		Timeout: 30 * time.Second,
@@ -117,7 +117,7 @@ func TellDataDudeToBillCreditsPackage(custId string) (bool /* success */, error)
 	}
 	if res.StatusCode != 200 {
 		log.Print("data-dude error")
-		log.Print(resBody)
+		log.Print(str(resBody))
 		return false, errors.New("")
 	}
 
@@ -161,7 +161,7 @@ func TellDataDudeToRecordUsage(apiKey string, credits int64) (bool /* success */
 		return false, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Management-Token", "ManagementToken") // f4ee5c1eb39d14517e90b9cejustkidding
+	req.Header.Set("X-Management-Token", ManagementToken) // f4ee5c1eb39d14517e90b9cejustkidding
 
 	client := http.Client{
 		Timeout: 30 * time.Second,
@@ -180,7 +180,7 @@ func TellDataDudeToRecordUsage(apiKey string, credits int64) (bool /* success */
 	}
 	if res.StatusCode != 200 {
 		log.Print("data-dude error")
-		log.Print(resBody)
+		log.Print(str(resBody))
 		return false, errors.New("")
 	}
 
