@@ -57,7 +57,7 @@ func GetAPIKeyInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
 	}
 	if res.StatusCode != 200 {
 		log.Print("data-dude error")
-		log.Print(str(resBody))
+		log.Print(string(resBody))
 		return errObj, errors.New("")
 	}
 
@@ -117,7 +117,7 @@ func TellDataDudeToBillCreditsPackage(custId string) (bool /* success */, error)
 	}
 	if res.StatusCode != 200 {
 		log.Print("data-dude error")
-		log.Print(str(resBody))
+		log.Print(string(resBody))
 		return false, errors.New("")
 	}
 
@@ -180,7 +180,7 @@ func TellDataDudeToRecordUsage(apiKey string, credits int64) (bool /* success */
 	}
 	if res.StatusCode != 200 {
 		log.Print("data-dude error")
-		log.Print(str(resBody))
+		log.Print(string(resBody))
 		return false, errors.New("")
 	}
 
