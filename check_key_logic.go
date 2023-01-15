@@ -22,7 +22,7 @@ func IsAPIKeyOK(apiKey string, info DataDudeResponse, creditsToProcess int64) (i
 		}
 	}
 
-	if creditsToBill == 0 || info.APIKey.Disabled {
+	if info.APIKey.Disabled {
 		return 0, false, origin, false
 	}
 
