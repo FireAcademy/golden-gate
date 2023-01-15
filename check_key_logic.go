@@ -12,10 +12,14 @@ import (
 func IsAPIKeyOK(apiKey string, info DataDudeResponse, creditsToProcess int64) (int64 /* creditsToBill */, bool /* ok */, string /* newOrigin */, bool /* purchaseCreditsPackage */) {
 	origin := info.APIKey.Origin
 	creditsToBill := creditsToProcess
+	ok := true
 
-	if info.APIKey.MonthlyCreditLimit < info.Usage.Credits + creditsToBill {
-		log.Print("Missed a few credits on API key " + apiKey)
-		creditsToBill = info.APIKey.MonthlyCreditLimit - info.Usage.Credits
+	if info.APIKey.MonthlyCreditLimit != 0 {
+		if info.APIKey.MonthlyCreditLimit < info.Usage.Credits + creditsToBill {
+			log.Print("Missed a few credits on API key " + apiKey)
+			creditsToBill = info.APIKey.MonthlyCreditLimit - info.Usage.Credits
+			ok = false
+		}
 	}
 
 	if creditsToBill == 0 || info.APIKey.Disabled {
@@ -24,13 +28,13 @@ func IsAPIKeyOK(apiKey string, info DataDudeResponse, creditsToProcess int64) (i
 
 	if creditsToBill > info.User.RemainingCredits {
 		if info.User.StripeCustomerID.Valid && info.User.AutoPurchaseCreditsPackages {
-			return creditsToBill, true, origin, true
+			return creditsToBill, ok, origin, true
 		} else {
-			return 0, false, origin, false
+			return info.User.RemainingCredits, false, origin, false
 		}
 	}
 
-	return creditsToBill, true, origin, false
+	return creditsToBill, ok, origin, false
 }
 
 func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, string /* origin */, error /* err */) {
