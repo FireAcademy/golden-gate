@@ -117,6 +117,7 @@ func TellDataDudeToBillCreditsPackage(custId string) (bool /* success */, error)
 	}
 	if res.StatusCode != 200 {
 		log.Print("data-dude error")
+		log.Print(string(args_JSON))
 		log.Print(string(resBody))
 		return false, errors.New("")
 	}

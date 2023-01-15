@@ -40,6 +40,7 @@ func IsAPIKeyOK(apiKey string, info DataDudeResponse, creditsToProcess int64) (i
 func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, string /* origin */, error /* err */) {
 	state, err := RDB.Get(context.Background(), apiKey).Result()
 	if err == nil && state == API_KEY_PENDING_CHECK_VALUE {
+		log.Print("api key is already being checked; calling CheckAPIKeyQuickly...")
 		return CheckAPIKeyQuickly(apiKey)
 	}
 
@@ -51,6 +52,7 @@ func RefreshAPIKey(apiKey string) (bool /* canBeUsed */, string /* origin */, er
 
 	info, err := GetAPIKeyInfoFromDataDude(apiKey)
 	if err != nil {
+		log.Print(err)
 		return false, "", err
 	}
 
