@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 	"context"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel/attribute"
 	. "github.com/fireacademy/golden-gate/redis"
 	telemetry "github.com/fireacademy/telemetry"
