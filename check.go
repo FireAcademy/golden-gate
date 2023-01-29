@@ -2,10 +2,10 @@ package main
 
 import (
 	"os"
-	"log"
 	"time"
 	"context"
 	"github.com/go-redis/redis/v8"
+	"go.opentelemetry.io/otel/attribute"
 	. "github.com/fireacademy/golden-gate/redis"
 )
 
@@ -23,19 +23,27 @@ func loop() {
 				time.Sleep(time.Second)
 				continue
 			} else {
-				log.Print(err)
+				ctx, span := GetSpan(context.Background(), "loop")
+				defer span.End()
+				LogError(ctx, err, "error when popping item from API kyes queue")
 				panic(err)
 			}
 		}
+		ctx, span := GetSpan(context.Background(), "loop")
+		span.SetAttributes(
+			attribute.String("api_key", apiKey),
+		)
 
-		_, _, err = RefreshAPIKey(apiKey)
+		_, _, err = RefreshAPIKey(ctx, apiKey)
 		if err != nil {
-			log.Print(err)
-			err = RDB.SAdd(context.Background(), PROCESS_QUEUE_SET_NAME, apiKey).Err()
+			LogError(ctx, err, "error while refreshing API key")
+			err = RDB.SAdd(ctx, PROCESS_QUEUE_SET_NAME, apiKey).Err()
 			if err != nil {
-				log.Print(err)
+				LogError(ctx, err, "error while adding API key back to queue")
 			}
 		}
+
+		span.End()
 	}
 }
 

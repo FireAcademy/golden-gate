@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 	pb "github.com/fireacademy/golden-gate/grpc"
 	. "github.com/fireacademy/golden-gate/redis"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 )
 
 type server struct {
@@ -16,7 +17,7 @@ type server struct {
 }
 
 func (s *server) RefreshAPIKeyData(ctx context.Context, r *pb.RefreshAPIKeyRequest) (*pb.RefreshAPIKeyReply, error) {
-	canBeUsed, origin, err := RefreshAPIKey(r.APIKey)
+	canBeUsed, origin, err := RefreshAPIKey(ctx, r.APIKey)
 
 	return &pb.RefreshAPIKeyReply{
 		CanBeUsed: canBeUsed,
@@ -25,7 +26,7 @@ func (s *server) RefreshAPIKeyData(ctx context.Context, r *pb.RefreshAPIKeyReque
 }
 
 func (s *server) BillCredits(ctx context.Context, r *pb.BillCreditsRequest) (*pb.EmptyReply, error) {
-	err := BillCreditsQuickly(r.APIKey, r.Credits)
+	err := BillCreditsQuickly(ctx, r.APIKey, r.Credits)
 	return &pb.EmptyReply{}, err
 }
 
@@ -35,7 +36,10 @@ func gRPCServer(port string) {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
+		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+	)
 	pb.RegisterGoldenGateServer(s, &server{})
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
@@ -52,6 +56,9 @@ func getPort() string {
 }
 
 func main() {
+	cleanup := InitTracer()
+	defer cleanup(context.Background())
+
 	SetupRedis()
 	SetupCheck()
 

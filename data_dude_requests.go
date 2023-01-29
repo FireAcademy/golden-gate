@@ -1,20 +1,28 @@
 package main
 
 import (
-	"log"
 	"time"
 	"bytes"
 	"errors"
+	"context"
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
+	"go.opentelemetry.io/otel/attribute"
+	. "github.com/fireacademy/golden-gate/redis"
 )
 
 type GetAPIKeyInfoArgs struct {
     APIKey string `json:"api_key"`
 }
 
-func GetAPIKeyInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
+func GetAPIKeyInfoFromDataDude(ctx context.Context, apiKey string) (DataDudeResponse, error) {
+	ctx, span := GetSpan(ctx, "GetAPIKeyInfoFromDataDude")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("api_key", apiKey),
+	)
+
 	errObj := DataDudeResponse{
 		Success: false,
 	}
@@ -24,7 +32,7 @@ func GetAPIKeyInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
 
 	args_JSON, err := json.Marshal(args)
 	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while encoding JSOn arguments")
 		return errObj, err
 	}
 
@@ -32,39 +40,38 @@ func GetAPIKeyInfoFromDataDude(apiKey string) (DataDudeResponse, error) {
 
 	req, err := http.NewRequest(http.MethodPost, DataDudeAPIKeyInfoURL, bodyReader)
 	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while creating request")
 		return errObj, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Management-Token", ManagementToken) // f4ee5c1eb39d14517e90b9cejustkidding
 
 	client := http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 5 * time.Second,
   	}
 
   	res, err := client.Do(req)
   	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while making request")
 		return errObj, err
 	}
 
 	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while reading response")
 		return DataDudeResponse{
 			Success: false,
 		}, err
 	}
 	if res.StatusCode != 200 {
-		log.Print("data-dude error")
-		log.Print(string(resBody))
+		LogError(ctx, errors.New("data-dude error"), "data-dude error; resp body: " + string(resBody))
 		return errObj, errors.New("")
 	}
 
 	var resp DataDudeResponse
 	err = json.Unmarshal(resBody, &resp)
 	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while decoding JSON response" + string(resBody))
 		return errObj, err
 	}
 
@@ -79,14 +86,20 @@ type BillCreditsPackageResponse struct {
     Success bool `json:"success"`
 }
 
-func TellDataDudeToBillCreditsPackage(custId string) (bool /* success */, error) {
+func TellDataDudeToBillCreditsPackage(ctx context.Context, custId string) (bool /* success */, error) {
+	ctx, span := GetSpan(ctx, "TellDataDudeToBillCreditsPackage")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("customer_id", custId),
+	)
+
 	args := BillCreditsPackageArgs{
 		StripeCustomerID: custId,
 	}
 
 	args_JSON, err := json.Marshal(args)
 	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while encoding JSOn arguments")
 		return false, err
 	}
 
@@ -94,38 +107,36 @@ func TellDataDudeToBillCreditsPackage(custId string) (bool /* success */, error)
 
 	req, err := http.NewRequest(http.MethodPost, DataDudeBillCreditsPackageURL, bodyReader)
 	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while creating request")
 		return false, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Management-Token", ManagementToken) // f4ee5c1eb39d14517e90b9cejustkidding
 
 	client := http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 5 * time.Second,
   	}
 
   	res, err := client.Do(req)
   	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while making request")
 		return false, err
 	}
 
 	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while reading response")
 		return false, err
 	}
 	if res.StatusCode != 200 {
-		log.Print("data-dude error")
-		log.Print(string(args_JSON))
-		log.Print(string(resBody))
+		LogError(ctx, errors.New("data-dude error"), "data-dude error; resp body: " + string(resBody) + "; arguments: " + string(args_JSON))
 		return false, errors.New("")
 	}
 
 	var resp BillCreditsPackageResponse
 	err = json.Unmarshal(resBody, &resp)
 	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while decoding JSON response: " + string(resBody))
 		return false, err
 	}
 
@@ -142,7 +153,14 @@ type RecordUsageResponse struct {
     Success bool `json:"success"`
 }
 
-func TellDataDudeToRecordUsage(apiKey string, credits int64) (bool /* success */, error) {
+func TellDataDudeToRecordUsage(ctx context.Context, apiKey string, credits int64) (bool /* success */, error) {
+	ctx, span := GetSpan(ctx, "TellDataDudeToRecordUsage")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("api_key", apiKey),
+		attribute.Int64("credits", credits),
+	)
+
 	args := RecordUsageArgs{
 		APIKey: apiKey,
 		Credits: credits,
@@ -150,7 +168,7 @@ func TellDataDudeToRecordUsage(apiKey string, credits int64) (bool /* success */
 
 	args_JSON, err := json.Marshal(args)
 	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while encoding JSOn arguments")
 		return false, err
 	}
 
@@ -158,37 +176,36 @@ func TellDataDudeToRecordUsage(apiKey string, credits int64) (bool /* success */
 
 	req, err := http.NewRequest(http.MethodPost, DataDudeRecordUsageURL, bodyReader)
 	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while creating request")
 		return false, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Management-Token", ManagementToken) // f4ee5c1eb39d14517e90b9cejustkidding
 
 	client := http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 10 * time.Second,
   	}
 
   	res, err := client.Do(req)
   	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while making request")
 		return false, err
 	}
 
 	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while reading response")
 		return false, err
 	}
 	if res.StatusCode != 200 {
-		log.Print("data-dude error")
-		log.Print(string(resBody))
+		LogError(ctx, errors.New("data-dude error"), "data-dude error; resp body: " + string(resBody) + "; arguments: " + string(args_JSON))
 		return false, errors.New("")
 	}
 
 	var resp RecordUsageResponse
 	err = json.Unmarshal(resBody, &resp)
 	if err != nil {
-		log.Print(err)
+		LogError(ctx, err, "error while decoding JSON response: " + string(resBody))
 		return false, err
 	}
 
