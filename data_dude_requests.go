@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"go.opentelemetry.io/otel/attribute"
-	. "github.com/fireacademy/golden-gate/redis"
+	telemetry "github.com/fireacademy/telemetry"
 )
 
 type GetAPIKeyInfoArgs struct {
@@ -17,7 +17,7 @@ type GetAPIKeyInfoArgs struct {
 }
 
 func GetAPIKeyInfoFromDataDude(ctx context.Context, apiKey string) (DataDudeResponse, error) {
-	ctx, span := GetSpan(ctx, "GetAPIKeyInfoFromDataDude")
+	ctx, span := telemetry.GetSpan(ctx, "GetAPIKeyInfoFromDataDude")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("api_key", apiKey),
@@ -32,7 +32,7 @@ func GetAPIKeyInfoFromDataDude(ctx context.Context, apiKey string) (DataDudeResp
 
 	args_JSON, err := json.Marshal(args)
 	if err != nil {
-		LogError(ctx, err, "error while encoding JSOn arguments")
+		telemetry.LogError(ctx, err, "error while encoding JSOn arguments")
 		return errObj, err
 	}
 
@@ -40,7 +40,7 @@ func GetAPIKeyInfoFromDataDude(ctx context.Context, apiKey string) (DataDudeResp
 
 	req, err := http.NewRequest(http.MethodPost, DataDudeAPIKeyInfoURL, bodyReader)
 	if err != nil {
-		LogError(ctx, err, "error while creating request")
+		telemetry.LogError(ctx, err, "error while creating request")
 		return errObj, err
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -52,26 +52,30 @@ func GetAPIKeyInfoFromDataDude(ctx context.Context, apiKey string) (DataDudeResp
 
   	res, err := client.Do(req)
   	if err != nil {
-		LogError(ctx, err, "error while making request")
+		telemetry.LogError(ctx, err, "error while making request")
 		return errObj, err
 	}
 
 	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		LogError(ctx, err, "error while reading response")
+		telemetry.LogError(ctx, err, "error while reading response")
 		return DataDudeResponse{
 			Success: false,
 		}, err
 	}
 	if res.StatusCode != 200 {
-		LogError(ctx, errors.New("data-dude error"), "data-dude error; resp body: " + string(resBody))
+		telemetry.LogError(
+			ctx,
+			errors.New("data-dude error"),
+			"data-dude error; resp body: " + string(resBody),
+		)
 		return errObj, errors.New("")
 	}
 
 	var resp DataDudeResponse
 	err = json.Unmarshal(resBody, &resp)
 	if err != nil {
-		LogError(ctx, err, "error while decoding JSON response" + string(resBody))
+		telemetry.LogError(ctx, err, "error while decoding JSON response" + string(resBody))
 		return errObj, err
 	}
 
@@ -87,7 +91,7 @@ type BillCreditsPackageResponse struct {
 }
 
 func TellDataDudeToBillCreditsPackage(ctx context.Context, custId string) (bool /* success */, error) {
-	ctx, span := GetSpan(ctx, "TellDataDudeToBillCreditsPackage")
+	ctx, span := telemetry.GetSpan(ctx, "TellDataDudeToBillCreditsPackage")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("customer_id", custId),
@@ -99,7 +103,7 @@ func TellDataDudeToBillCreditsPackage(ctx context.Context, custId string) (bool 
 
 	args_JSON, err := json.Marshal(args)
 	if err != nil {
-		LogError(ctx, err, "error while encoding JSOn arguments")
+		telemetry.LogError(ctx, err, "error while encoding JSOn arguments")
 		return false, err
 	}
 
@@ -107,7 +111,7 @@ func TellDataDudeToBillCreditsPackage(ctx context.Context, custId string) (bool 
 
 	req, err := http.NewRequest(http.MethodPost, DataDudeBillCreditsPackageURL, bodyReader)
 	if err != nil {
-		LogError(ctx, err, "error while creating request")
+		telemetry.LogError(ctx, err, "error while creating request")
 		return false, err
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -119,24 +123,28 @@ func TellDataDudeToBillCreditsPackage(ctx context.Context, custId string) (bool 
 
   	res, err := client.Do(req)
   	if err != nil {
-		LogError(ctx, err, "error while making request")
+		telemetry.LogError(ctx, err, "error while making request")
 		return false, err
 	}
 
 	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		LogError(ctx, err, "error while reading response")
+		telemetry.LogError(ctx, err, "error while reading response")
 		return false, err
 	}
 	if res.StatusCode != 200 {
-		LogError(ctx, errors.New("data-dude error"), "data-dude error; resp body: " + string(resBody) + "; arguments: " + string(args_JSON))
+		telemetry.LogError(
+			ctx,
+			errors.New("data-dude error"),
+			"data-dude error; resp body: " + string(resBody) + "; arguments: " + string(args_JSON),
+		)
 		return false, errors.New("")
 	}
 
 	var resp BillCreditsPackageResponse
 	err = json.Unmarshal(resBody, &resp)
 	if err != nil {
-		LogError(ctx, err, "error while decoding JSON response: " + string(resBody))
+		telemetry.LogError(ctx, err, "error while decoding JSON response: " + string(resBody))
 		return false, err
 	}
 
@@ -154,7 +162,7 @@ type RecordUsageResponse struct {
 }
 
 func TellDataDudeToRecordUsage(ctx context.Context, apiKey string, credits int64) (bool /* success */, error) {
-	ctx, span := GetSpan(ctx, "TellDataDudeToRecordUsage")
+	ctx, span := telemetry.GetSpan(ctx, "TellDataDudeToRecordUsage")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("api_key", apiKey),
@@ -168,7 +176,7 @@ func TellDataDudeToRecordUsage(ctx context.Context, apiKey string, credits int64
 
 	args_JSON, err := json.Marshal(args)
 	if err != nil {
-		LogError(ctx, err, "error while encoding JSOn arguments")
+		telemetry.LogError(ctx, err, "error while encoding JSOn arguments")
 		return false, err
 	}
 
@@ -176,7 +184,7 @@ func TellDataDudeToRecordUsage(ctx context.Context, apiKey string, credits int64
 
 	req, err := http.NewRequest(http.MethodPost, DataDudeRecordUsageURL, bodyReader)
 	if err != nil {
-		LogError(ctx, err, "error while creating request")
+		telemetry.LogError(ctx, err, "error while creating request")
 		return false, err
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -188,24 +196,28 @@ func TellDataDudeToRecordUsage(ctx context.Context, apiKey string, credits int64
 
   	res, err := client.Do(req)
   	if err != nil {
-		LogError(ctx, err, "error while making request")
+		telemetry.LogError(ctx, err, "error while making request")
 		return false, err
 	}
 
 	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		LogError(ctx, err, "error while reading response")
+		telemetry.LogError(ctx, err, "error while reading response")
 		return false, err
 	}
 	if res.StatusCode != 200 {
-		LogError(ctx, errors.New("data-dude error"), "data-dude error; resp body: " + string(resBody) + "; arguments: " + string(args_JSON))
+		telemetry.LogError(
+			ctx,
+			errors.New("data-dude error"),
+			"data-dude error; resp body: " + string(resBody) + "; arguments: " + string(args_JSON),
+		)
 		return false, errors.New("")
 	}
 
 	var resp RecordUsageResponse
 	err = json.Unmarshal(resBody, &resp)
 	if err != nil {
-		LogError(ctx, err, "error while decoding JSON response: " + string(resBody))
+		telemetry.LogError(ctx, err, "error while decoding JSON response: " + string(resBody))
 		return false, err
 	}
 

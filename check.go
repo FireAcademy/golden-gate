@@ -7,6 +7,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"go.opentelemetry.io/otel/attribute"
 	. "github.com/fireacademy/golden-gate/redis"
+	telemetry "github.com/fireacademy/telemetry"
 )
 
 var DataDudeAPIKeyInfoURL string
@@ -23,23 +24,23 @@ func loop() {
 				time.Sleep(time.Second)
 				continue
 			} else {
-				ctx, span := GetSpan(context.Background(), "loop")
+				ctx, span := telemetry.GetSpan(context.Background(), "loop")
 				defer span.End()
-				LogError(ctx, err, "error when popping item from API kyes queue")
+				telemetry.LogError(ctx, err, "error when popping item from API kyes queue")
 				panic(err)
 			}
 		}
-		ctx, span := GetSpan(context.Background(), "loop")
+		ctx, span := telemetry.GetSpan(context.Background(), "loop")
 		span.SetAttributes(
 			attribute.String("api_key", apiKey),
 		)
 
 		_, _, err = RefreshAPIKey(ctx, apiKey)
 		if err != nil {
-			LogError(ctx, err, "error while refreshing API key")
+			telemetry.LogError(ctx, err, "error while refreshing API key")
 			err = RDB.SAdd(ctx, PROCESS_QUEUE_SET_NAME, apiKey).Err()
 			if err != nil {
-				LogError(ctx, err, "error while adding API key back to queue")
+				telemetry.LogError(ctx, err, "error while adding API key back to queue")
 			}
 		}
 

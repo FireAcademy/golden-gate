@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 	pb "github.com/fireacademy/golden-gate/grpc"
 	. "github.com/fireacademy/golden-gate/redis"
+	telemetry "github.com/fireacademy/telemetry"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 )
 
@@ -56,9 +57,10 @@ func getPort() string {
 }
 
 func main() {
-	cleanup := SetupRedis()
+	cleanup := telemetry.Initialize()
 	defer cleanup(context.Background())
 
+	SetupRedis()
 	SetupCheck()
 
 	port := getPort()
