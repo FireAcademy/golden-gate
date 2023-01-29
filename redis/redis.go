@@ -87,7 +87,8 @@ func getRedisConnectionString() string {
     return url
 }
 
-func SetupRedis() {
+func SetupRedis() func(context.Context) error {
+	cleanup := InitTracer()
 	opt, err := redis.ParseURL(getRedisConnectionString())
 	if err != nil {
 		panic(err)
@@ -95,4 +96,6 @@ func SetupRedis() {
 
 	RDB = redis.NewClient(opt)
 	RDB.AddHook(redisotel.NewTracingHook())
+
+	return cleanup
 }

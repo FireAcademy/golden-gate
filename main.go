@@ -56,10 +56,9 @@ func getPort() string {
 }
 
 func main() {
-	cleanup := InitTracer()
+	cleanup := SetupRedis()
 	defer cleanup(context.Background())
 
-	SetupRedis()
 	SetupCheck()
 
 	port := getPort()
