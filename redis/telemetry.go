@@ -32,7 +32,7 @@ func GetSpan(ctx context.Context, name string) (context.Context, trace.Span) {
 }
 
 // https://signoz.io/blog/monitoring-your-go-application-with-signoz/#instrumenting-a-sample-golang-app
-func InitTracer() func(context.Context) error {
+func initTracer() func(context.Context) error {
     secureOption := otlptracegrpc.WithTLSCredentials(credentials.NewClientTLSFromCert(nil, ""))
     if len(insecure) > 0 {
         secureOption = otlptracegrpc.WithInsecure()

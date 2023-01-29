@@ -88,7 +88,7 @@ func getRedisConnectionString() string {
 }
 
 func SetupRedis() func(context.Context) error {
-	cleanup := InitTracer()
+	cleanup := initTracer()
 	opt, err := redis.ParseURL(getRedisConnectionString())
 	if err != nil {
 		panic(err)
