@@ -1,15 +1,16 @@
 package main
 
 import (
-	"log"
-	"time"
-	"errors"
 	"context"
+	"errors"
+	"log"
 	"strconv"
-	"github.com/go-redis/redis/v8"
-	"go.opentelemetry.io/otel/attribute"
+	"time"
+
 	. "github.com/fireacademy/golden-gate/redis"
 	telemetry "github.com/fireacademy/telemetry"
+	"github.com/go-redis/redis/v8"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 func IsAPIKeyOK(ctx context.Context, apiKey string, info DataDudeResponse, creditsToProcess int64) (int64 /* creditsToBill */, bool /* ok */, string /* newOrigin */, bool /* purchaseCreditsPackage */) {
@@ -31,7 +32,7 @@ func IsAPIKeyOK(ctx context.Context, apiKey string, info DataDudeResponse, credi
 	ok := true
 
 	if info.APIKey.MonthlyCreditLimit != 0 {
-		if info.APIKey.MonthlyCreditLimit < info.Usage.Credits + creditsToBill {
+		if info.APIKey.MonthlyCreditLimit < info.Usage.Credits+creditsToBill {
 			log.Print("Missed a few credits on API key " + apiKey)
 			creditsToBill = info.APIKey.MonthlyCreditLimit - info.Usage.Credits
 			ok = false
@@ -60,12 +61,12 @@ func RefreshAPIKey(ctx context.Context, apiKey string) (bool /* canBeUsed */, st
 		attribute.String("api_key", apiKey),
 	)
 
-	state, err := RDB.Get(ctx, API_KEY_PREFIX + apiKey).Result()
+	state, err := RDB.Get(ctx, API_KEY_PREFIX+apiKey).Result()
 	if err == nil && state == API_KEY_PENDING_CHECK_VALUE {
 		return CheckAPIKeyQuickly(ctx, apiKey)
 	}
 
-	err = RDB.Set(ctx, API_KEY_PREFIX + apiKey, API_KEY_PENDING_CHECK_VALUE, 2 * time.Second).Err()
+	err = RDB.Set(ctx, API_KEY_PREFIX+apiKey, API_KEY_PENDING_CHECK_VALUE, 2*time.Second).Err()
 	if err != nil {
 		telemetry.LogError(ctx, err, "could not set API key status in redis")
 		return false, "", err
@@ -77,7 +78,7 @@ func RefreshAPIKey(ctx context.Context, apiKey string) (bool /* canBeUsed */, st
 		return false, "", err
 	}
 
-	creditsToProcessStr, err := RDB.Get(ctx, USAGE_PREFIX + apiKey).Result()
+	creditsToProcessStr, err := RDB.Get(ctx, USAGE_PREFIX+apiKey).Result()
 	if err != nil {
 		if err != redis.Nil {
 			telemetry.LogError(ctx, err, "could not get credits to process")
@@ -86,8 +87,14 @@ func RefreshAPIKey(ctx context.Context, apiKey string) (bool /* canBeUsed */, st
 	}
 	creditsToProcess, err := strconv.ParseInt(creditsToProcessStr, 10, 64)
 	if err != nil {
-		telemetry.LogError(ctx, err, "error when converting credits to process to int: " + creditsToProcessStr)
+		telemetry.LogError(ctx, err, "error when converting credits to process to int: "+creditsToProcessStr)
 		creditsToProcess = 0
+	}
+
+	err = RDB.DecrBy(ctx, USAGE_PREFIX+apiKey, creditsToProcess).Err()
+	if err != nil {
+		telemetry.LogError(ctx, err, "could not decrease API key credits (to bill) in redis")
+		return true, "*", err
 	}
 
 	creditsToBill, ok, newOrigin, purchaseCreditsPackage := IsAPIKeyOK(ctx, apiKey, info, creditsToProcess)
@@ -122,30 +129,25 @@ func RefreshAPIKey(ctx context.Context, apiKey string) (bool /* canBeUsed */, st
 	if ok {
 		valueToSet = API_KEY_OK_VALUE
 	}
-	err = RDB.Set(ctx, API_KEY_PREFIX + apiKey, valueToSet, 0).Err()
+	err = RDB.Set(ctx, API_KEY_PREFIX+apiKey, valueToSet, 0).Err()
 	if err != nil {
 		telemetry.LogError(ctx, err, "could not set API key status in redis")
 		return true, newOrigin, err
 	}
 
 	if ok {
-		err = RDB.Set(ctx, ORIGIN_PREFIX + apiKey, newOrigin, 0).Err()
+		err = RDB.Set(ctx, ORIGIN_PREFIX+apiKey, newOrigin, 0).Err()
 		if err != nil {
 			telemetry.LogError(ctx, err, "could not set API key origin in redis")
 			return true, newOrigin, err
 		}
-		err = RDB.DecrBy(ctx, USAGE_PREFIX + apiKey, creditsToProcess).Err()
-		if err != nil {
-			telemetry.LogError(ctx, err, "could not decrease API key credits (to bill) in redis")
-			return true, newOrigin, err
-		}
 	} else {
-		err = RDB.Del(ctx, ORIGIN_PREFIX + apiKey).Err()
+		err = RDB.Del(ctx, ORIGIN_PREFIX+apiKey).Err()
 		if err != nil && err != redis.Nil {
 			telemetry.LogError(ctx, err, "could not delete API key origin in redis")
 			return false, newOrigin, err
 		}
-		err = RDB.Del(ctx, USAGE_PREFIX + apiKey).Err()
+		err = RDB.Del(ctx, USAGE_PREFIX+apiKey).Err()
 		if err != nil && err != redis.Nil {
 			telemetry.LogError(ctx, err, "could not delete API key usage in redis")
 			return false, newOrigin, err
